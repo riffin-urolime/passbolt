@@ -137,3 +137,78 @@ So full disclaimer: Use this repository at your own risk.
 ### proxy ###
 * **proxy_domain**: the domain under which your passbolt instance should be reachable, e.g. your.passbolt-domain.com. Please make sure to update the DNS records for this domain to point to the machine you want to run passbolt on, else the letsencrypt will fail to obtain the ssl certificates.
 * **proxy_admin_email**: The email address for the representative of the domain statet above, used for obtaining the ssl certificates.
+
+
+
+***The previous steps I've mentioned can be used to dockerize the passbolt application in a server, but it is using old version of passbolt, which does not have many functions. Following are the steps that includes updating the passbolt to the latest version:***
+
+====================================================================
+Passbolt installation
+
+Requirement:
+
+I. A server, OS - Ubuntu (recommended), Centos
+II. A domain name that points to the server
+III. A working email address to set as admin
+
+Steps:
+
+1. Install docker and docker-compose
+2. Initialise git and clone using the following command:
+
+git clone https://github.com/Riodigital-de/passbolt-docker-compose passbolt
+
+3. Follow the steps in the README file.
+
+cd ~/passbolt/data/ 
+    vi .env
+    sh generate-keys.sh
+    docker-compose build
+    docker-compose run -p 80:80 -p 443:443 proxy bash
+    sh dry-run.sh
+    sh get-cert.sh
+    CTRL + D
+    docker-compose down
+
+Updating Passbolt
+
+cd ~/passbolt/data/
+   mv passbolt/ passbolt.orig
+   git clone https://github.com/passbolt/passbolt_api passbolt
+   cd passbolt.orig/app/Config/
+   cp -p app.php core.php database.php email.php ~/passbolt/data/passbolt/app/Config/
+   cd ~/passbolt/data/
+   cp -p passbolt.orig/.* passbolt/
+   cp -p passbolt.orig/supervisord.* passbolt/
+   cp -p passbolt.orig/build.* passbolt/
+   chown -R www-data.root passbolt
+   chown root.root passbolt/supervisord.*
+
+cd ~/passbolt/data/
+   docker-compose down
+   docker-compose run -p 80:80 -p 443:443 proxy bash
+   sh dry-run.sh
+   sh get-cert.sh
+   cd ~/passbolt/data/  
+   docker-compose down
+
+cd ~/passbolt/data/passbolt/app/tmp/cache/models/
+   chown -R www-data.www-data passbolt_cake_model_default_passbolt_email_queue
+   chown -R www-data.www-data passbolt_cake_model_default_passbolt_list
+   cd ..
+   cd persistent/
+   chown www-data.www-data passbolt_cake_core_*
+
+cd ~/passbolt
+   docker-compose up &
+
+4. Once the docker composer is UP, follow the steps below:
+
+i) Bash into app container
+  ii) cd /var/www/passbolt
+  iii) su -s /bin/bash -c "app/Console/cake install --no-admin" www-data
+  iv) su -s /bin/bash -c "app/Console/cake passbolt register_user -u admin@email.com -f First_name -l last_name -r admin" www-data
+
+5. Install the passbolt plugin extension in browser
+6. Login to the email address mentioned while adding the admin and an email will be in inbox/spam. Click the link inside to configure the account in browser plugin. Note down the passphrase while configuring. ====================================================================
+
